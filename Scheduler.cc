@@ -17,11 +17,14 @@ int count_sites_active(unordered_map<int, vector<BLOCK>> schedule, int num_activ
     int count_active_sites = 0; 
 
     for (auto& [site_id, tests] : schedule){
-        BLOCK last_testt = tests.back();
+        if(tests.size() > 0){
+            BLOCK last_testt = tests.back();
 
-        if(last_testt.type == Test){
-            count_active_sites++;
+            if(last_testt.type == Test){
+                count_active_sites++;
+            }
         }
+       
     }
     return count_active_sites;
 }
@@ -103,7 +106,7 @@ pair<unordered_map<int, vector<BLOCK>>, priority_queue<BLOCK, vector<BLOCK>, BLO
                     temperature_transition.type = Temperature_transition; 
                     temperature_transition.start_time = last_time_on_site;
                     temperature_transition.TR = "Temperature Transition" + to_string(current_test.temperature);
-                    temperature_transition.duration = (best_site == 88 || best_site == 86) ? 60 : 30;
+                    temperature_transition.duration = (best_site == 75 || best_site == 76) ? 60 : 30;
                     temperature_transition.end_time = temperature_transition.duration + last_time_on_site;
 
                     last_time_on_site = temperature_transition.end_time;
@@ -126,14 +129,13 @@ pair<unordered_map<int, vector<BLOCK>>, priority_queue<BLOCK, vector<BLOCK>, BLO
 
 vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(unordered_map<int, vector<BLOCK>> initial_schedule, priority_queue<CHANGE, vector<CHANGE>, CHANGE::Comparator> change_log, priority_queue<BLOCK, vector<BLOCK>, BLOCK::Comparator> queue, float shift_length, int num_active_sites){
     vector<pair<string, unordered_map<int, vector<BLOCK>>>> schedules;
-    
+    cout<<"START"<<endl;
     while(!change_log.empty()){
-
         string tag_line;
         // Extract Change
         CHANGE current_change = change_log.top();
         float change_time = current_change.time_of_change;
-
+        cout<<"CHANGE"<<endl;
         // Lock all tests before the change. Add unlocked tests to the queue
         for (auto& [site_id, tests] : initial_schedule){
             for(auto& test : tests){
@@ -145,7 +147,7 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
                 }
             }
         }
-
+cout<<"1"<<endl;
         // Remove all unlocked tests 
         for (auto& [site_id, tests] : initial_schedule){
             int num_locked = 0;
@@ -160,7 +162,7 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
                 tests.pop_back();
             }
         }
-
+cout<<"2"<<endl;
         // depending on type of change, add the required delays (might need to remove test if it is locked but wants to be deleted)
         if(current_change.change_type == "SITE DOWN"){
             tag_line = to_string(change_time) + ": " + "Site DOWN --> site_" + to_string(current_change.site_id);
@@ -177,10 +179,10 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
                 // Cancel the site if it is not done and add it to queue 
                 if(last_test.type != Site_Downtime && !last_test_complete || current_test_in_progress){
                     // Remove the last time 
-                    initial_schedule[site_to_go_down].erase(initial_schedule[site_to_go_down].begin()+ initial_schedule[site_to_go_down].size()-1);
+                    //initial_schedule[site_to_go_down].erase(initial_schedule[site_to_go_down].begin()+ initial_schedule[site_to_go_down].size()-1);
                     
                     // Add a delay for time lost for the part of test that ran
-                    if(last_test.start_time != change_time){
+                    if(false && last_test.start_time != change_time){
                         BLOCK test_lost;
                         test_lost.start_time = last_test.start_time;
                         test_lost.type = incomplete_test_time_lost_for_site_down;
@@ -193,7 +195,7 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
                   
                 }
             }
-      
+      cout<<"3 - site downtime"<<endl;
             // add downtime block with unfinished end time 
             BLOCK site_downtime; 
             site_downtime.start_time = change_time;
@@ -202,14 +204,24 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
             site_downtime.unknown_end = true;
             site_downtime.TR = "Site Down";
             initial_schedule[site_to_go_down].push_back(site_downtime);
-            
+            cout<<"3 - site downtime2"<<endl;
             // See if tests can move to a new site --> remove labor + QC
             int staffed_sites = count_sites_active(initial_schedule, num_active_sites);
+            cout<<"3 - site downtime2"<<endl;
             for (auto& [site_id, tests] : initial_schedule){
                 if(staffed_sites < num_active_sites){
+                    
+                    cout<<"in here"<<endl;
                     // Check if site is currently no_labor avail
-                    BLOCK last_test = tests.back();
-                    if(last_test.type == No_Labor_Available){
+                    bool no_labor = false;
+                    if(tests.size() > 0){
+                        BLOCK last_test = tests.back();
+                        no_labor = (last_test.type == No_Labor_Available) ? true : false;
+                    }else if(tests.size() == 0){
+                        no_labor = true;
+                    }
+                    cout<<"in here - b"<<endl;
+                    if(no_labor && tests.size() > 0){
                         // Close no labor block 
                         tests.back().end_time = change_time;
                         tests.back().duration = tests.back().end_time - tests.back().start_time;
@@ -224,11 +236,12 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
                         // increment staffed sites 
                         staffed_sites++;
                     }
+                    
                 }
                    
             }
 
-            
+            cout<<"3b"<<endl;
         }else if(current_change.change_type == "SITE UP"){
             tag_line = to_string(change_time) + ": " + "Site UP --> site_" + to_string(current_change.site_id);
             // get site 
@@ -238,6 +251,18 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
             initial_schedule[site_up].back().end_time = change_time;
             initial_schedule[site_up].back().duration =  change_time - initial_schedule[site_up].back().start_time;
             initial_schedule[site_up].back().unknown_end = false;
+
+            // TODO if no labor on that site ---> add a no labor block when it comes back up 
+            if(count_sites_active(initial_schedule, num_active_sites) == num_active_sites){
+                BLOCK no_labor;
+                no_labor.type = No_Labor_Available;
+                no_labor.start_time = change_time;
+                no_labor.end_time = -1;
+                no_labor.unknown_end = true;
+                no_labor.TR = "No Labor Avail";
+                initial_schedule[site_up].push_back(no_labor);
+                
+            }
         
         }else if(current_change.change_type == "DELETE"){ // need to look at how much notice we were given and each of the reasons why a test could be deleted
             tag_line = to_string(change_time) + ": " + "Removed " +current_change.TR + " from schedule and rescheduled --> " + current_change.cancellation_reason;
@@ -338,12 +363,12 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
             tag_line = to_string(change_time) + ": " + "Added test " + current_change.added_test.TR + " to the queue and rescheduled";
             queue.push(current_change.added_test);
         }
-        
+            cout<<"4"<<endl;
         // re-fill the schedule 
         pair<unordered_map<int, vector<BLOCK>>, priority_queue<BLOCK, vector<BLOCK>, BLOCK::Comparator>> updated_info = scheduler(initial_schedule, queue, shift_length);
         initial_schedule = updated_info.first;
         queue = updated_info.second;
-
+        cout<<"5"<<endl;
         // add the schedule and a string tag line of what happened to schedules 
         schedules.push_back({tag_line, initial_schedule});
         change_log.pop();
