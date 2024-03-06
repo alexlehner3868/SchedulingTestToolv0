@@ -339,7 +339,7 @@ int main()
     cout<<" complete"<<endl;
 
     ofstream myfile;
-  myfile.open ("AM_schedules.txt");
+    myfile.open ("AM_schedules.txt");
  
     for(auto schedule : schedules){
         int filled_hours = 0;
@@ -348,9 +348,9 @@ int main()
             myfile<<"------------------------------"<<endl;
             myfile<< schedule.first<<endl;
             for (auto& [site_id, tests] : schedule.second){
-                myfile<<"SITE_"<<site_id<<endl;
+               // myfile<<"SITE_"<<site_id<<endl;
                 for(auto& test : tests){
-                    myfile <<test.TR<<" : ("<<test.start_time<<" -> "<<test.end_time<<")"<<endl;
+                    myfile <<test.TR<<", "<<site_id <<", "<< test.start_time<<","<<test.end_time<<endl;
                     if(test.type == Test) filled_hours+=test.duration;
                 }
             }
@@ -398,9 +398,9 @@ int main()
             myfilePM<<"------------------------------"<<endl;
             myfilePM<< schedule.first<<endl;
             for (auto& [site_id, tests] : schedule.second){
-                myfilePM<<"SITE_"<<site_id<<endl;
+                //myfilePM<<"SITE_"<<site_id<<endl;
                 for(auto& test : tests){
-                    myfilePM <<test.TR<<" : ("<<test.start_time<<" -> "<<test.end_time<<")"<<endl;
+                    myfilePM <<test.TR<<", "<<site_id <<", "<< test.start_time<<","<<test.end_time<<endl;
                     if(test.type == Test) filled_hours+=test.duration;
                 }
                 myfilePM<<endl;
@@ -409,6 +409,8 @@ int main()
         }
     }
     myfilePM.close();
+
+
 
 	return 0;
 }

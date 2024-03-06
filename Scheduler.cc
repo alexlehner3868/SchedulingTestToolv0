@@ -129,13 +129,11 @@ pair<unordered_map<int, vector<BLOCK>>, priority_queue<BLOCK, vector<BLOCK>, BLO
 
 vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(unordered_map<int, vector<BLOCK>> initial_schedule, priority_queue<CHANGE, vector<CHANGE>, CHANGE::Comparator> change_log, priority_queue<BLOCK, vector<BLOCK>, BLOCK::Comparator> queue, float shift_length, int num_active_sites){
     vector<pair<string, unordered_map<int, vector<BLOCK>>>> schedules;
-    cout<<"START"<<endl;
     while(!change_log.empty()){
         string tag_line;
         // Extract Change
         CHANGE current_change = change_log.top();
         float change_time = current_change.time_of_change;
-        cout<<"CHANGE"<<endl;
         // Lock all tests before the change. Add unlocked tests to the queue
         for (auto& [site_id, tests] : initial_schedule){
             for(auto& test : tests){
@@ -147,7 +145,7 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
                 }
             }
         }
-cout<<"1"<<endl;
+
         // Remove all unlocked tests 
         for (auto& [site_id, tests] : initial_schedule){
             int num_locked = 0;
@@ -162,7 +160,7 @@ cout<<"1"<<endl;
                 tests.pop_back();
             }
         }
-cout<<"2"<<endl;
+
         // depending on type of change, add the required delays (might need to remove test if it is locked but wants to be deleted)
         if(current_change.change_type == "SITE DOWN"){
             tag_line = to_string(change_time) + ": " + "Site DOWN --> site_" + to_string(current_change.site_id);
@@ -195,7 +193,6 @@ cout<<"2"<<endl;
                   
                 }
             }
-      cout<<"3 - site downtime"<<endl;
             // add downtime block with unfinished end time 
             BLOCK site_downtime; 
             site_downtime.start_time = change_time;
@@ -204,14 +201,11 @@ cout<<"2"<<endl;
             site_downtime.unknown_end = true;
             site_downtime.TR = "Site Down";
             initial_schedule[site_to_go_down].push_back(site_downtime);
-            cout<<"3 - site downtime2"<<endl;
             // See if tests can move to a new site --> remove labor + QC
             int staffed_sites = count_sites_active(initial_schedule, num_active_sites);
-            cout<<"3 - site downtime2"<<endl;
             for (auto& [site_id, tests] : initial_schedule){
                 if(staffed_sites < num_active_sites){
                     
-                    cout<<"in here"<<endl;
                     // Check if site is currently no_labor avail
                     bool no_labor = false;
                     if(tests.size() > 0){
@@ -220,7 +214,6 @@ cout<<"2"<<endl;
                     }else if(tests.size() == 0){
                         no_labor = true;
                     }
-                    cout<<"in here - b"<<endl;
                     if(no_labor && tests.size() > 0){
                         // Close no labor block 
                         tests.back().end_time = change_time;
@@ -241,7 +234,6 @@ cout<<"2"<<endl;
                    
             }
 
-            cout<<"3b"<<endl;
         }else if(current_change.change_type == "SITE UP"){
             tag_line = to_string(change_time) + ": " + "Site UP --> site_" + to_string(current_change.site_id);
             // get site 
@@ -284,21 +276,21 @@ cout<<"2"<<endl;
                             
                             BLOCK delay;
                             delay.type = Lost_time_last_minute_vehicle_issue;
-                            delay.duration = 30;
+                            delay.duration = 20;
                             delay.locked = true;
                             delay.start_time = test_start;
                             delay.end_time = test_start + delay.duration;
                             delay.temperature = 75;
-                            delay.TR = "Time lost to last minute vehicle issues";
+                            delay.TR = "Vehicle Issue Delay";
                             tests.erase(tests.begin()+i);
                             tests.push_back(delay);
                         }
                         
                         
-                    }else if(current_change.cancellation_reason == "RE Change" || current_change.cancellation_reason == "Requester Cancelled "){
+                    }else if(current_change.cancellation_reason == "RE Cancellation" || current_change.cancellation_reason == "RE Cancellation Last Minute"){
                         float test_start = tests[i].start_time;
                         float change_time = current_change.time_of_change;
-                        if(change_time < test_start){
+                        if(current_change.cancellation_reason == "RE Cancellation"){
                             tests.erase(tests.begin()+i);
                         }else{
                             
@@ -309,7 +301,7 @@ cout<<"2"<<endl;
                             delay.start_time = test_start;
                             delay.end_time = test_start + delay.duration;
                             delay.temperature = 75;
-                            delay.TR = "Time lost to last minute RE change";
+                            delay.TR = "Last Minute RE Cancellation";
                             tests.erase(tests.begin()+i);
                             tests.push_back(delay);
                         }
@@ -334,12 +326,12 @@ cout<<"2"<<endl;
                     }else if(current_change.cancellation_reason == "Site Issue"){
                             BLOCK delay;
                             delay.type = Lost_time_Site_Issue;
-                            delay.duration = 45;
+                            delay.duration = 35;
                             delay.locked = true;
                             delay.start_time = tests[i].start_time;
                             delay.end_time = tests[i].start_time + delay.duration;
                             delay.temperature = 75;
-                            delay.TR = "Time lost to site issue";
+                            delay.TR = "Site Issue Delay";
                             tests.erase(tests.begin()+i);
                             tests.push_back(delay);
                     }else{
@@ -363,12 +355,10 @@ cout<<"2"<<endl;
             tag_line = to_string(change_time) + ": " + "Added test " + current_change.added_test.TR + " to the queue and rescheduled";
             queue.push(current_change.added_test);
         }
-            cout<<"4"<<endl;
         // re-fill the schedule 
         pair<unordered_map<int, vector<BLOCK>>, priority_queue<BLOCK, vector<BLOCK>, BLOCK::Comparator>> updated_info = scheduler(initial_schedule, queue, shift_length);
         initial_schedule = updated_info.first;
         queue = updated_info.second;
-        cout<<"5"<<endl;
         // add the schedule and a string tag line of what happened to schedules 
         schedules.push_back({tag_line, initial_schedule});
         change_log.pop();
