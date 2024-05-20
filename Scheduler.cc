@@ -11,7 +11,7 @@
 
 using namespace std;
 bool all_vehicle_issues_are_last_minute = true;
-
+bool for_average_calc = true;
 
 int count_sites_active(unordered_map<int, vector<BLOCK>> schedule, int num_active_sites){
     int count_active_sites = 0; 
@@ -134,10 +134,64 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
         // Extract Change
         CHANGE current_change = change_log.top();
         float change_time = current_change.time_of_change;
+
+                /*
+        TODO:
+            - FOr the site which has the change, look at all tests on that site and count every other site that the test can go through 
+            - Unlock the top X sites that have the maximum amount of possible tests that can go on it
+            - Lock all other sites and schedule around that
+        */
+       // find site of test to be removed
+       int site_with_change;
+        for (auto& [site_id, tests] : initial_schedule){
+                for(auto& test : tests){
+                    if(test.TR == current_change.TR){
+                        site_with_change = site_id;
+                        break;
+                    }
+                }
+        }
+
+        // Count possible sites that are currently available to be used 
+        unordered_map<int, int> possible_tests_per_site;
+        current_change.site_id = site_with_change;
+        for (auto t : initial_schedule[current_change.site_id]){
+            for(auto other_site : t.possible_sites){
+                possible_tests_per_site[other_site]++;
+                
+            }
+        }
+
+        // choose which X sites to unlock (check that a site is not down for PM. prioritize no_labor_sites)
+        // If a site_no_labor has a count > 5, ise that? 
+        int max_num_sites_to_unlock = 3;
+        priority_queue<pair<int, int>> unlocked_sites; //<count, site> 
+        unordered_set<int> selected_to_unlocked;
+
+        for(auto site : possible_tests_per_site){
+            unlocked_sites.push({site.second, site.first});
+        }
+ 
+        cout<< "Only Chanings Sites ";
+        selected_to_unlocked.insert(site_with_change);
+        while (!unlocked_sites.empty() && selected_to_unlocked.size() < max_num_sites_to_unlock){
+            int count = unlocked_sites.top().first;
+            int site_num = unlocked_sites.top().second;
+            unlocked_sites.pop();
+            if(initial_schedule[site_num].size() > 0 && initial_schedule[site_num].back().type != Site_Downtime){
+                selected_to_unlocked.insert(site_num);
+                cout<<site_num<< ", ";
+            }
+
+        }
+       cout<<endl;
+        // TODO --> if selected sites and less than max ,add more
+
+        // TODO --> Change to also lock if not on the unlocked site list
         // Lock all tests before the change. Add unlocked tests to the queue
         for (auto& [site_id, tests] : initial_schedule){
             for(auto& test : tests){
-                if(test.start_time > change_time){
+                if(test.start_time > change_time && test.type != Special_manual && selected_to_unlocked.find(site_id) != selected_to_unlocked.end()){
                     test.locked = false; // test has not happened yet (it is in the future) 
                     if(test.type == Test) queue.push(test);
                 }else if (test.start_time <= change_time){
@@ -145,7 +199,7 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
                 }
             }
         }
-
+        
         // Remove all unlocked tests 
         for (auto& [site_id, tests] : initial_schedule){
             int num_locked = 0;
@@ -166,6 +220,7 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
             tag_line = to_string(change_time) + ": " + "Site DOWN --> site_" + to_string(current_change.site_id);
             // What site is going down and when 
             int site_to_go_down = current_change.site_id;
+             
             float downtime_start_time = change_time;
 
             // Get last test on site 
@@ -267,7 +322,7 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
                 }
                 if(i != tests.size()){
                     
-                    if(current_change.cancellation_reason == "Vehicle Issues"){
+                    if(current_change.cancellation_reason == "Vehicle Issues" || current_change.cancellation_reason == "Vehicle Issue"){
                         float test_start = tests[i].start_time;
                         float change_time = current_change.time_of_change;
                         if(!all_vehicle_issues_are_last_minute && change_time < test_start){
@@ -287,12 +342,12 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
                         }
                         
                         
-                    }else if(current_change.cancellation_reason == "RE Cancellation" || current_change.cancellation_reason == "RE Cancellation Last Minute"){
+                    }else if(current_change.cancellation_reason == "RE Cancel" ||current_change.cancellation_reason == "RE Cancelled" || current_change.cancellation_reason == "RE Cancelled Last Minute" || current_change.cancellation_reason == "Re Cancelled"){
                         float test_start = tests[i].start_time;
                         float change_time = current_change.time_of_change;
-                        if(current_change.cancellation_reason == "RE Cancellation"){
+                        if(current_change.cancellation_reason == "RE Cancel"){
                             tests.erase(tests.begin()+i);
-                        }else{
+                        }else if(current_change.cancellation_reason == "RE Cancelled Last Minute"){
                             
                             BLOCK delay;
                             delay.type = Lost_time_last_minute_RE_change;
@@ -323,10 +378,11 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
                             tests.erase(tests.begin()+i);
                             tests.push_back(delay);
                         }
-                    }else if(current_change.cancellation_reason == "Site Issue"){
+                    }else if(current_change.cancellation_reason == "Site Issue" || current_change.cancellation_reason == "Site Down"){
+                        //cout<<"HERE"<<current_change.TR;
                             BLOCK delay;
                             delay.type = Lost_time_Site_Issue;
-                            delay.duration = 35;
+                            delay.duration = current_change.duration; // currently using larger # to incorporate site downs 35;
                             delay.locked = true;
                             delay.start_time = tests[i].start_time;
                             delay.end_time = tests[i].start_time + delay.duration;
@@ -334,8 +390,27 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
                             delay.TR = "Site Issue Delay";
                             tests.erase(tests.begin()+i);
                             tests.push_back(delay);
+
+                           
+                    }else if(current_change.cancellation_reason == "RE not present"){
+                        float test_start = tests[i].start_time;
+                        float change_time = current_change.time_of_change;
+                    
+                            tests.erase(tests.begin()+i);
+                        
+                            BLOCK delay;
+                            delay.type = Lost_time_last_minute_RE_change;
+                            delay.duration = 30;
+                            delay.locked = true;
+                            delay.start_time = test_start;
+                            delay.end_time = test_start + delay.duration;
+                            delay.temperature = 75;
+                            delay.TR = "RE Not Present";
+                            tests.erase(tests.begin()+i);
+                            tests.push_back(delay);
+                        
                     }else{
-                        cout<<" Unrecognized cancellation reason"<<endl;
+                        cout<<" Unrecognized cancellation reason --> "<< current_change.cancellation_reason<<endl;
                     }
                     
                     

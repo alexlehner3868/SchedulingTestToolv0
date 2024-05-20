@@ -29,6 +29,7 @@ class CHANGE {
 
     // If Site up or down 
     int site_id; 
+    double duration; // for site issues
     
     // empty block 
     CHANGE() {}

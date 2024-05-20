@@ -27,7 +27,8 @@ enum block_type {
     Lost_time_last_minute_vehicle_issue = 10, // vehicle had an issue last minute (when on that vehicle)
     planned_downtimes = 11,
     unknown_lost_time = 12,
-    incomplete_test_time_lost_for_site_down = 13
+    incomplete_test_time_lost_for_site_down = 13,
+    Special_manual = 14
 };
 
 class BLOCK {
@@ -91,12 +92,13 @@ class BLOCK {
 
             
             // Order by temperature uniqueness (higher numbers first)
-            if (lhs.temperature_uniqueness != rhs.temperature_uniqueness) {
-                return lhs.temperature_uniqueness < rhs.temperature_uniqueness;
+            if (lhs.duration != rhs.duration) {
+                return lhs.duration < rhs.duration;
+
             }
 
             // Order by duration (higher duration first)
-            return lhs.duration < rhs.duration;;
+            return lhs.temperature_uniqueness < rhs.temperature_uniqueness;
         }
     };
    

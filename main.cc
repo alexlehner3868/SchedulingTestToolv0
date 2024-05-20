@@ -228,6 +228,7 @@ void read_change_log_csv(string filename, priority_queue<CHANGE, vector<CHANGE>,
         bool multiple_possible_sites = false;
         float start_time; 
         float duration;
+        float downtime_duration;
         while (!first_row && getline(ss, value, ',')) {
             //cout<<col<<" : "<<value<<endl;
             if(col == 0){
@@ -243,8 +244,10 @@ void read_change_log_csv(string filename, priority_queue<CHANGE, vector<CHANGE>,
             }else if(col == 3){
                 removal_category = value;
             }else if(col == 4){
+                //cout<<"start "<<value<<endl;
                 start_time = stof(value);
             }else if(col ==5){
+                //cout<<"duration "<<value<<endl;
                 duration = stof(value);
             }
             
@@ -256,7 +259,7 @@ void read_change_log_csv(string filename, priority_queue<CHANGE, vector<CHANGE>,
             CHANGE new_change;
             new_change.change_type = action;
             new_change.time_of_change = start_time;
-
+            new_change.duration = duration;
             if(action == "ADDED"){
                 BLOCK new_test; 
                 new_test.duration = duration;
@@ -270,6 +273,7 @@ void read_change_log_csv(string filename, priority_queue<CHANGE, vector<CHANGE>,
             }else if(action == "DELETE"){
                 new_change.cancellation_reason = removal_category;
                 new_change.TR = TRNo_or_site;
+                
             }else if(action == "SITE UP" || action == "SITE DOWN"){
                 new_change.site_id = *begin(extractNumbers(TRNo_or_site, available_sites)); // get the site number that is going up/down
             }else{
@@ -318,16 +322,17 @@ int main()
         schedule[site] = vector<BLOCK>();
     }
 
+    
     // unscheduled testing queue 
     priority_queue<BLOCK, vector<BLOCK>, BLOCK::Comparator> queue; 
     cout<<"Reading initial schedule data ...";
-    std::string filename = "/Users/alex/Desktop/AM Schedule CSV.csv";  // Change this to your CSV file path
+    std::string filename = "/Users/alex/Desktop/Feb15AMList.csv";  // Change this to your CSV file path
 
     read_schedule_csv(filename, schedule, queue, sites);
     cout<<" complete"<<endl;
     
     // Pull List of changes to the schedule 
-    std::string filename_changelog = "/Users/alex/Desktop/AM Changes CSV.csv";  // Change this to your CSV file path
+    std::string filename_changelog = "/Users/alex/Desktop/Feb15AMChanges.csv";  // Change this to your CSV file path
     priority_queue<CHANGE, vector<CHANGE>, CHANGE::Comparator> change_log; 
 
     cout<<"Reading change log data ...";
@@ -339,7 +344,7 @@ int main()
     cout<<" complete"<<endl;
 
     ofstream myfile;
-    myfile.open ("AM_schedules.txt");
+    myfile.open ("FEB15_AM_schedules_LIMITSITES.txt");
  
     for(auto schedule : schedules){
         int filled_hours = 0;
@@ -361,7 +366,7 @@ int main()
     
 
     // PM 
-    num_active_sites = 16; // 16 active sites in the PM 
+    num_active_sites = 18; // 16 active sites in the PM 
 
     unordered_map<int, vector<BLOCK>> PM_schedule; 
     for(auto site: sites){
@@ -371,13 +376,13 @@ int main()
     // unscheduled testing queue 
     priority_queue<BLOCK, vector<BLOCK>, BLOCK::Comparator> PM_queue; 
     cout<<"Reading initial schedule data ...";
-    std::string PM_filename = "/Users/alex/Desktop/PM Schedule CSV.csv";  // Change this to your CSV file path
+    std::string PM_filename = "/Users/alex/Desktop/Feb15PM.csv";  // Change this to your CSV file path
 
     read_schedule_csv(PM_filename, PM_schedule, PM_queue, sites);
     cout<<" complete"<<endl;
     
     // Pull List of changes to the schedule 
-    std::string PM_filename_changelog = "/Users/alex/Desktop/PM Changes CSV .csv";  // Change this to your CSV file path
+    std::string PM_filename_changelog = "/Users/alex/Desktop/Feb15PMChanges.csv";  // Change this to your CSV file path
     priority_queue<CHANGE, vector<CHANGE>, CHANGE::Comparator> PM_change_log; 
 
     cout<<"Reading change log data ...";
@@ -389,7 +394,7 @@ int main()
     cout<<" complete"<<endl;
 
     ofstream myfilePM;
-    myfilePM.open ("PM_schedules.txt");
+    myfilePM.open ("FEB15_PM_schedules_LIMITSITES.txt");
  
     for(auto schedule : PM_schedules){
         int filled_hours = 0;
@@ -403,7 +408,7 @@ int main()
                     myfilePM <<test.TR<<", "<<site_id <<", "<< test.start_time<<","<<test.end_time<<endl;
                     if(test.type == Test) filled_hours+=test.duration;
                 }
-                myfilePM<<endl;
+                
             }
             myfilePM <<" hours filled: "<< filled_hours/60<<endl;
         }
@@ -411,6 +416,37 @@ int main()
     myfilePM.close();
 
 
+ 
+ /*
+// Initial Schedule Only
+    priority_queue<BLOCK, vector<BLOCK>, BLOCK::Comparator> queue; 
+    cout<<"Reading initial schedule data ...";
+    std::string filename = "/Users/alex/Desktop/Feb15AMList.csv";  // Change this to your CSV file path
 
+    read_schedule_csv(filename, schedule, queue, sites);
+    cout<<" complete"<<endl;
+
+    auto results = scheduler(schedule, queue, available_time);
+    
+    ofstream myfile;
+    myfile.open ("AM_GR_15.txt");
+ cout<<" complete"<<endl;
+        int filled_hours = 0;
+        
+            myfile<<endl;
+            myfile<<"------------------------------"<<endl;
+   
+            for (auto& [site_id, tests] : results.first){
+               // myfile<<"SITE_"<<site_id<<endl;
+                for(auto& test : tests){
+                    myfile <<test.TR<<", "<<site_id <<", "<< test.start_time<<","<<test.end_time<<endl;
+                    if(test.type == Test) filled_hours+=test.duration;
+                }
+            }
+            myfile <<" hours filled: "<< filled_hours/60<<endl;
+        
+    
+    myfile.close();
+    */
 	return 0;
 }
