@@ -142,7 +142,7 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
             - Lock all other sites and schedule around that
         */
        // find site of test to be removed
-       int site_with_change;
+       int site_with_change = -1;
         for (auto& [site_id, tests] : initial_schedule){
                 for(auto& test : tests){
                     if(test.TR == current_change.TR){
@@ -151,7 +151,9 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
                     }
                 }
         }
-
+        if(site_with_change ==-1){
+            cout<< "Could not locate test " <<current_change.TR <<endl;
+        }
         // Count possible sites that are currently available to be used 
         unordered_map<int, int> possible_tests_per_site;
         current_change.site_id = site_with_change;
@@ -172,19 +174,20 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
             unlocked_sites.push({site.second, site.first});
         }
  
-        cout<< "Only Chanings Sites ";
+        //cout<< "Only Chanings Sites ";
         selected_to_unlocked.insert(site_with_change);
+       // cout<<site_with_change<<", ";
         while (!unlocked_sites.empty() && selected_to_unlocked.size() < max_num_sites_to_unlock){
             int count = unlocked_sites.top().first;
             int site_num = unlocked_sites.top().second;
             unlocked_sites.pop();
             if(initial_schedule[site_num].size() > 0 && initial_schedule[site_num].back().type != Site_Downtime){
                 selected_to_unlocked.insert(site_num);
-                cout<<site_num<< ", ";
+               // cout<<site_num<< ", ";
             }
 
         }
-       cout<<endl;
+       //cout<<endl;
         // TODO --> if selected sites and less than max ,add more
 
         // TODO --> Change to also lock if not on the unlocked site list

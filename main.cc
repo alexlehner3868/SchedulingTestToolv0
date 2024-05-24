@@ -332,7 +332,7 @@ int main()
     cout<<" complete"<<endl;
     
     // Pull List of changes to the schedule 
-    std::string filename_changelog = "/Users/alex/Desktop/Feb15AMChanges.csv";  // Change this to your CSV file path
+    std::string filename_changelog = "/Users/alex/Desktop/Feb15AMChangesLimit 3.csv";  // Change this to your CSV file path
     priority_queue<CHANGE, vector<CHANGE>, CHANGE::Comparator> change_log; 
 
     cout<<"Reading change log data ...";
@@ -344,7 +344,7 @@ int main()
     cout<<" complete"<<endl;
 
     ofstream myfile;
-    myfile.open ("FEB15_AM_schedules_LIMITSITES.txt");
+    myfile.open ("FEB15_AM_schedules_LIMITSITES_3.txt");
  
     for(auto schedule : schedules){
         int filled_hours = 0;
@@ -382,7 +382,7 @@ int main()
     cout<<" complete"<<endl;
     
     // Pull List of changes to the schedule 
-    std::string PM_filename_changelog = "/Users/alex/Desktop/Feb15PMChanges.csv";  // Change this to your CSV file path
+    std::string PM_filename_changelog = "/Users/alex/Desktop/Feb15PMChangesLimit 3.csv";  // Change this to your CSV file path
     priority_queue<CHANGE, vector<CHANGE>, CHANGE::Comparator> PM_change_log; 
 
     cout<<"Reading change log data ...";
@@ -394,7 +394,7 @@ int main()
     cout<<" complete"<<endl;
 
     ofstream myfilePM;
-    myfilePM.open ("FEB15_PM_schedules_LIMITSITES.txt");
+    myfilePM.open ("FEB15_PM_schedules_LIMITSITES_3.txt");
  
     for(auto schedule : PM_schedules){
         int filled_hours = 0;
