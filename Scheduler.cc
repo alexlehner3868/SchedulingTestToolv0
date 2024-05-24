@@ -135,12 +135,7 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
         CHANGE current_change = change_log.top();
         float change_time = current_change.time_of_change;
 
-                /*
-        TODO:
-            - FOr the site which has the change, look at all tests on that site and count every other site that the test can go through 
-            - Unlock the top X sites that have the maximum amount of possible tests that can go on it
-            - Lock all other sites and schedule around that
-        */
+  /*
        // find site of test to be removed
        int site_with_change = -1;
         for (auto& [site_id, tests] : initial_schedule){
@@ -189,12 +184,12 @@ vector<pair<string, unordered_map<int, vector<BLOCK>>>> walk_through_changes(uno
         }
        //cout<<endl;
         // TODO --> if selected sites and less than max ,add more
-
+*/
         // TODO --> Change to also lock if not on the unlocked site list
         // Lock all tests before the change. Add unlocked tests to the queue
         for (auto& [site_id, tests] : initial_schedule){
             for(auto& test : tests){
-                if(test.start_time > change_time && test.type != Special_manual && selected_to_unlocked.find(site_id) != selected_to_unlocked.end()){
+                if(test.start_time > change_time && test.type != Special_manual){
                     test.locked = false; // test has not happened yet (it is in the future) 
                     if(test.type == Test) queue.push(test);
                 }else if (test.start_time <= change_time){
